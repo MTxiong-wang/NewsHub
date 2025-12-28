@@ -1,453 +1,612 @@
-# NewsHub 新闻源配置文档
+# NewsHub API 集成文档
 
-## 1. 新闻源概览
+## 1. API 概述
 
-本文档列出了 NewsHub 计划支持的新闻网站及其接入方式。
+NewsHub 使用 [orz-ai/hot_news](https://github.com/orz-ai/hot_news) 提供的公开 API 来获取各平台的热点新闻数据。
 
-## 2. 国内新闻网站
+### 1.1 API 基本信息
 
-### 2.1 综合门户类
+- **基础 URL**: `https://orz.ai/api/v1/dailynews/`
+- **请求方法**: GET
+- **数据格式**: JSON
+- **数据刷新频率**: 约每30分钟自动刷新一次
+- **License**: MIT License
+- **速率限制**: 目前无明确限制，但建议合理使用
 
-#### 新浪新闻
-- **网站**: https://news.sina.com.cn/
-- **类型**: RSS / 爬虫
-- **RSS 链接**:
-  - 滚动新闻: https://news.sina.com.cn/roll/index.d.html
-- **分类**: 时政, 财经, 体育, 娱乐, 科技
-- **更新频率**: 10 分钟
-- **优先级**: 高
+### 1.2 API 优势
 
-#### 网易新闻
-- **网站**: https://news.163.com/
-- **类型**: RSS
-- **RSS 链接**: https://news.163.com/special/0001386I/rss_news.xml
-- **分类**: 新闻, 财经, 体育, 娱乐, 科技
-- **更新频率**: 10 分钟
-- **优先级**: 高
+- 无需维护爬虫系统
+- 数据质量高，由专业团队维护
+- 支持多个主流平台
+- 自动更新，数据及时
+- 合法合规，无版权风险
 
-#### 搜狐新闻
-- **网站**: https://news.sohu.com/
-- **类型**: RSS
-- **RSS 链接**: https://news.sohu.com/rss/roll.xml
-- **分类**: 综合, 财经, 体育, 娱乐
-- **更新频率**: 15 分钟
-- **优先级**: 中
+### 1.3 API 局限
 
-#### 腾讯新闻
-- **网站**: https://news.qq.com/
-- **类型**: 爬虫
-- **分类**: 时政, 财经, 体育, 娱乐, 科技
-- **更新频率**: 10 分钟
-- **优先级**: 高
+- 依赖第三方服务可用性
+- 数据格式受限于 API
+- 只能获取标题、URL、评分、描述等基本信息
+- 无法获取完整正文内容
 
-#### 凤凰网
-- **网站**: https://news.ifeng.com/
-- **类型**: RSS
-- **RSS 链接**: https://news.ifeng.com/rss/index.xml
-- **分类**: 时政, 财经, 体育, 娱乐
-- **更新频率**: 15 分钟
-- **优先级**: 高
+## 2. API 调用方式
 
-### 2.2 科技类
+### 2.1 请求格式
 
-#### 36氪 (36Kr)
-- **网站**: https://36kr.com/
-- **类型**: RSS / API
-- **RSS 链接**: https://36kr.com/feed
-- **分类**: 科技, 创业, 投资
-- **更新频率**: 30 分钟
-- **优先级**: 高
-
-#### 虎嗅网
-- **网站**: https://www.huxiu.com/
-- **类型**: RSS
-- **RSS 链接**: https://www.huxiu.com/rss/0.xml
-- **分类**: 科技, 商业
-- **更新频率**: 30 分钟
-- **优先级**: 中
-
-#### 钛媒体
-- **网站**: https://www.tmtpost.com/
-- **类型**: RSS
-- **RSS 链接**: https://www.tmtpost.com/rss.xml
-- **分类**: 科技, 商业
-- **更新频率**: 1 小时
-- **优先级**: 中
-
-#### IT之家
-- **网站**: https://www.ithome.com/
-- **类型**: RSS
-- **RSS 链接**: https://www.ithome.com/rss/
-- **分类**: 科技, 数码
-- **更新频率**: 20 分钟
-- **优先级**: 高
-
-### 2.3 财经类
-
-#### 财经网
-- **网站**: https://www.caijing.com.cn/
-- **类型**: RSS
-- **RSS 链接**: https://www.caijing.com.cn/rss/index.xml
-- **分类**: 财经, 宏观, 金融
-- **更新频率**: 30 分钟
-- **优先级**: 中
-
-#### 第一财经
-- **网站**: https://www.yicai.com/
-- **类型**: RSS
-- **RSS 链接**: https://www.yicai.com/rss/news.xml
-- **分类**: 财经, 宏观, 金融
-- **更新频率**: 30 分钟
-- **优先级**: 高
-
-#### 华尔街见闻
-- **网站**: https://wallstreetcn.com/
-- **类型**: API
-- **API 文档**: 需申请
-- **分类**: 全球市场, 宏观
-- **更新频率**: 实时
-- **优先级**: 高
-
-### 2.4 其他分类
-
-#### 体育
-- **虎扑**: https://www.hupu.com/ (RSS)
-- **新浪体育**: https://sports.sina.com.cn/ (RSS)
-
-#### 娱乐
-- **娱乐头条**: https://ent.sina.com.cn/ (RSS)
-- **腾讯娱乐**: https://ent.qq.com/ (爬虫)
-
-## 3. 国际新闻网站
-
-### 3.1 国际主流媒体
-
-#### BBC News
-- **网站**: https://www.bbc.com/news
-- **类型**: RSS
-- **RSS 链接**: http://feeds.bbci.co.uk/news/rss.xml
-- **分类**: 世界, 商业, 科技
-- **更新频率**: 30 分钟
-- **优先级**: 中
-- **注意**: 需处理英文内容
-
-#### CNN
-- **网站**: https://edition.cnn.com/
-- **类型**: RSS
-- **RSS 链接**: http://rss.cnn.com/rss/edition.rss
-- **分类**: 世界, 商业, 科技
-- **更新频率**: 30 分钟
-- **优先级**: 中
-
-#### Reuters
-- **网站**: https://www.reuters.com/
-- **类型**: RSS
-- **RSS 链接**: https://www.reutersagency.com/feed/
-- **分类**: 商业, 科技
-- **更新频率**: 1 小时
-- **优先级**: 中
-
-#### TechCrunch
-- **网站**: https://techcrunch.com/
-- **类型**: RSS
-- **RSS 链接**: https://techcrunch.com/feed/
-- **分类**: 科技, 创业
-- **更新频率**: 1 小时
-- **优先级**: 中
-
-## 4. 数据获取方式
-
-### 4.1 RSS 订阅（推荐）
-
-**优点**:
-- 标准化格式
-- 结构化数据
-- 合法合规
-- 实现简单
-
-**缺点**:
-- 部分网站不提供完整内容
-- 更新频率受限
-- 部分网站已停止维护 RSS
-
-**实现示例**:
-```javascript
-// 使用 rss-parser 库
-const Parser = require('rss-parser');
-const parser = new Parser();
-
-const feed = await parser.parseURL('https://example.com/rss');
-feed.items.forEach(item => {
-  console.log(item.title);
-  console.log(item.link);
-  console.log(item.pubDate);
-});
+#### 基础请求
+```http
+GET https://orz.ai/api/v1/dailynews/?platform={platform_code}
 ```
 
-### 4.2 公开 API
+#### 请求参数
 
-**优点**:
-- 官方支持
-- 数据质量高
-- 稳定性好
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| platform | string | 是 | 平台代码，如 baidu, weibo, zhihu |
 
-**缺点**:
-- 需要申请 API Key
-- 可能有调用频率限制
-- 部分服务收费
+### 2.2 响应格式
 
-**实现示例**:
-```javascript
-// 使用 News API (https://newsapi.org/)
-const axios = require('axios');
-
-const response = await axios.get('https://newsapi.org/v2/top-headlines', {
-  params: {
-    apiKey: 'YOUR_API_KEY',
-    country: 'cn',
-    category: 'technology'
-  }
-});
-```
-
-### 4.3 网页爬虫
-
-**优点**:
-- 可获取完整内容
-- 灵活性高
-- 适用于无 RSS/API 的网站
-
-**缺点**:
-- 需应对反爬虫机制
-- 网站结构变化时需维护
-- 法律风险（需遵守 robots.txt）
-
-**实现示例**:
-```javascript
-// 使用 Cheerio 或 Puppeteer
-const cheerio = require('cheerio');
-const axios = require('axios');
-
-const response = await axios.get('https://example.com');
-const $ = cheerio.load(response.data);
-
-$('.news-item').each((i, element) => {
-  const title = $(element).find('.title').text();
-  const link = $(element).find('a').attr('href');
-  // 保存到数据库
-});
-```
-
-**反爬虫策略**:
-- 设置合理的请求间隔（2-5 秒）
-- 使用代理 IP 池
-- 设置 User-Agent
-- 模拟真实用户行为
-- 遵守 robots.txt
-
-## 5. 数据格式规范
-
-### 5.1 统一数据结构
-
+#### 成功响应
 ```json
 {
-  "title": "新闻标题",
-  "summary": "新闻摘要",
-  "content": "完整内容",
-  "author": "作者名称",
-  "source": {
-    "id": 1,
-    "name": "新闻源名称",
-    "url": "https://example.com"
-  },
-  "original_url": "https://example.com/news/123",
-  "category": {
-    "id": 1,
-    "name": "科技",
-    "slug": "tech"
-  },
-  "tags": ["AI", "科技", "创新"],
-  "cover_image": "https://example.com/image.jpg",
-  "published_at": "2025-12-28T00:00:00Z",
-  "crawled_at": "2025-12-28T00:05:00Z"
+  "status": "200",
+  "data": [
+    {
+      "title": "新闻标题",
+      "url": "https://www.baidu.com/s?word=...",
+      "score": "4955232",
+      "desc": "新闻描述或摘要"
+    }
+  ],
+  "msg": "success"
 }
 ```
 
-### 5.2 字段说明
+#### 字段说明
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| title | string | 是 | 新闻标题，最多 500 字符 |
-| summary | string | 否 | 新闻摘要，最多 1000 字符 |
-| content | text | 否 | 完整内容 |
-| author | string | 否 | 作者名称 |
-| source | object | 是 | 新闻源信息 |
-| original_url | string | 是 | 原始文章链接 |
-| category | object | 否 | 分类信息 |
-| tags | array | 否 | 标签数组 |
-| cover_image | string | 否 | 封面图片 URL |
-| published_at | datetime | 是 | 发布时间 |
-| crawled_at | datetime | 是 | 抓取时间 |
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| status | string | 状态码，"200" 表示成功 |
+| data | array | 热点新闻列表 |
+| data[].title | string | 新闻标题 |
+| data[].url | string | 原始链接 |
+| data[].score | string | 热度评分（字符串格式） |
+| data[].desc | string | 新闻描述，可能为空字符串 |
+| msg | string | 响应消息 |
 
-## 6. 新闻源配置示例
+## 3. 支持的平台
 
-### 6.1 配置文件格式
+### 3.1 平台列表
 
-```yaml
-sources:
-  - id: 1
-    name: "新浪新闻"
-    url: "https://news.sina.com.cn/"
-    type: "rss"
-    rss_url: "https://news.sina.com.cn/roll/index.d.html"
-    category_mapping:
-      "finance": "财经"
-      "tech": "科技"
-      "sports": "体育"
-    priority: 10
-    is_active: true
-    crawl_frequency: 10  # 分钟
+| 序号 | 平台代码 | 平台名称 | 分类 | 状态 |
+|------|----------|----------|------|------|
+| 1 | baidu | 百度热搜 | 综合媒体 | ✅ |
+| 2 | sspai | 少数派 | 科技媒体 | ✅ |
+| 3 | weibo | 微博热搜 | 社交媒体 | ✅ |
+| 4 | zhihu | 知乎热榜 | 社交媒体 | ✅ |
+| 5 | tskr | 36氪 | 科技媒体 | ✅ |
+| 6 | ftpojie | 吾爱破解 | 科技媒体 | ✅ |
+| 7 | bilibili | 哔哩哔哩 | 社交媒体 | ✅ |
+| 8 | douban | 豆瓣 | 社交媒体 | ✅ |
+| 9 | hupu | 虎扑 | 其他 | ✅ |
+| 10 | tieba | 百度贴吧 | 其他 | ✅ |
+| 11 | juejin | 掘金 | 科技媒体 | ✅ |
+| 12 | douyin | 抖音热点 | 社交媒体 | ✅ |
+| 13 | vtex | V2EX | 科技媒体 | ✅ |
+| 14 | jinritoutiao | 今日头条 | 综合媒体 | ✅ |
+| 15 | stackoverflow | Stack Overflow | 科技媒体 | ✅ |
+| 16 | github | GitHub Trending | 科技媒体 | ✅ |
+| 17 | hackernews | Hacker News | 科技媒体 | ✅ |
+| 18 | sina_finance | 新浪财经 | 财经媒体 | ✅ |
+| 19 | eastmoney | 东方财富 | 财经媒体 | ✅ |
+| 20 | xueqiu | 雪球 | 财经媒体 | ✅ |
+| 21 | cls | 财联社 | 财经媒体 | ✅ |
+| 22 | tenxunwang | 腾讯网 | 综合媒体 | ✅ |
 
-  - id: 2
-    name: "36氪"
-    url: "https://36kr.com/"
-    type: "rss"
-    rss_url: "https://36kr.com/feed"
-    category_mapping:
-      "tech": "科技"
-      "startup": "创业"
-    priority: 8
-    is_active: true
-    crawl_frequency: 30
-```
+### 3.2 平台分类
 
-### 6.2 数据库存储
+#### 社交媒体（5个）
+- **weibo** - 微博热搜：社交热点、娱乐、事件
+- **zhihu** - 知乎热榜：问答、深度内容、社会热点
+- **douyin** - 抖音热点：短视频热点、娱乐
+- **douban** - 豆瓣：书影音、文化、讨论
+- **bilibili** - 哔哩哔哩：视频、动漫、游戏、生活
 
-```sql
-INSERT INTO news_sources (name, url, type, config, priority, is_active, crawl_frequency)
-VALUES (
-  '新浪新闻',
-  'https://news.sina.com.cn/',
-  'rss',
-  '{
-    "rss_url": "https://news.sina.com.cn/roll/index.d.html",
-    "category_mapping": {
-      "finance": "财经",
-      "tech": "科技"
+#### 科技媒体（8个）
+- **tskr** - 36氪：科技创业、商业资讯
+- **sspai** - 少数派：科技、数码、生活方式
+- **juejin** - 掘金：编程、技术文章
+- **vtex** - V2EX：技术、编程、创意
+- **github** - GitHub Trending：开源项目、编程语言
+- **stackoverflow** - Stack Overflow：编程问答、技术讨论
+- **hackernews** - Hacker News：科技新闻、创业、编程
+- **ftpojie** - 吾爱破解：技术、软件、安全
+
+#### 财经媒体（4个）
+- **sina_finance** - 新浪财经：财经新闻、股市资讯
+- **eastmoney** - 东方财富：财经资讯、投资理财
+- **xueqiu** - 雪球：股票投资、财经社区
+- **cls** - 财联社：财经快讯、市场动态
+
+#### 综合媒体（3个）
+- **baidu** - 百度热搜：社会热点、娱乐、事件
+- **jinritoutiao** - 今日头条：新闻、热点事件
+- **tenxunwang** - 腾讯网：综合新闻、娱乐、科技
+
+#### 其他（2个）
+- **hupu** - 虎扑：体育、游戏、数码
+- **tieba** - 百度贴吧：兴趣社区、话题讨论
+
+## 4. 集成示例
+
+### 4.1 JavaScript / Node.js
+
+#### 使用 fetch
+```javascript
+async function getHotNews(platform) {
+  const url = `https://orz.ai/api/v1/dailynews/?platform=${platform}`;
+
+  try {
+    const response = await fetch(url);
+    const result = await response.json();
+
+    if (result.status === '200') {
+      return result.data;
+    } else {
+      console.error('API Error:', result.msg);
+      return [];
     }
-  }',
-  10,
-  true,
-  10
-);
+  } catch (error) {
+    console.error('Request failed:', error);
+    return [];
+  }
+}
+
+// 获取百度热搜
+const baiduNews = await getHotNews('baidu');
+console.log(baiduNews);
 ```
 
-## 7. 更新策略
+#### 使用 axios
+```javascript
+const axios = require('axios');
 
-### 7.1 抓取频率配置
+async function getHotNews(platform) {
+  try {
+    const response = await axios.get('https://orz.ai/api/v1/dailynews/', {
+      params: { platform }
+    });
 
-| 新闻源类型 | 建议频率 | 说明 |
-|-----------|---------|------|
-| 综合门户 | 10-15 分钟 | 更新频繁 |
-| 科技媒体 | 30-60 分钟 | 更新适中 |
-| 财经媒体 | 15-30 分钟 | 实时性要求高 |
-| 国际媒体 | 30-60 分钟 | 时差考虑 |
+    if (response.data.status === '200') {
+      return response.data.data;
+    }
+  } catch (error) {
+    console.error('Request failed:', error);
+  }
 
-### 7.2 优先级配置
+  return [];
+}
 
-| 优先级 | 分值范围 | 新闻源 |
-|--------|---------|--------|
-| 高 | 8-10 | 主流门户、头部媒体 |
-| 中 | 5-7 | 垂直媒体 |
-| 低 | 1-4 | 备用新闻源 |
+// 获取微博热搜
+const weiboNews = await getHotNews('weibo');
+```
 
-### 7.3 错误处理
+#### 获取所有平台
+```javascript
+const platforms = [
+  'baidu', 'weibo', 'zhihu', 'tskr', 'bilibili',
+  'douban', 'hupu', 'juejin', 'douyin', 'vtex'
+];
 
-- 连接失败：降低优先级，增加重试间隔
-- 数据异常：记录日志，跳过该条新闻
-- 频率限制：暂停该源，等待恢复
-- 持续失败：禁用新闻源，发送告警
+async function getAllHotNews() {
+  const results = {};
 
-## 8. robots.txt 遵守
+  for (const platform of platforms) {
+    results[platform] = await getHotNews(platform);
+    // 避免请求过于频繁，延迟100ms
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
 
-### 8.1 检查 robots.txt
+  return results;
+}
+
+const allNews = await getAllHotNews();
+```
+
+### 4.2 Python
+
+#### 使用 requests
+```python
+import requests
+
+def get_hot_news(platform):
+    url = "https://orz.ai/api/v1/dailynews/"
+    params = {"platform": platform}
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        result = response.json()
+
+        if result.get("status") == "200":
+            return result.get("data", [])
+        else:
+            print(f"API Error: {result.get('msg')}")
+            return []
+    except Exception as e:
+        print(f"Request failed: {e}")
+        return []
+
+# 获取知乎热榜
+zhihu_news = get_hot_news("zhihu")
+for item in zhihu_news[:5]:
+    print(f"{item['title']} - 热度: {item['score']}")
+```
+
+#### 使用 aiohttp（异步）
+```python
+import aiohttp
+import asyncio
+
+async def get_hot_news(session, platform):
+    url = "https://orz.ai/api/v1/dailynews/"
+    params = {"platform": platform}
+
+    try:
+        async with session.get(url, params=params, timeout=10) as response:
+            result = await response.json()
+
+            if result.get("status") == "200":
+                return platform, result.get("data", [])
+    except Exception as e:
+        print(f"{platform} request failed: {e}")
+
+    return platform, []
+
+async def get_all_hot_news(platforms):
+    async with aiohttp.ClientSession() as session:
+        tasks = [get_hot_news(session, platform) for platform in platforms]
+        results = await asyncio.gather(*tasks)
+
+    return dict(results)
+
+# 使用示例
+platforms = ['baidu', 'weibo', 'zhihu', 'tskr']
+all_news = asyncio.run(get_all_hot_news(platforms))
+```
+
+### 4.3 curl
 
 ```bash
-# 查看 news.sina.com.cn 的 robots.txt
-curl https://news.sina.com.cn/robots.txt
+# 获取百度热搜
+curl "https://orz.ai/api/v1/dailynews/?platform=baidu"
+
+# 获取微博热搜
+curl "https://orz.ai/api/v1/dailynews/?platform=weibo"
+
+# 格式化输出
+curl "https://orz.ai/api/v1/dailynews/?platform=zhihu" | jq
 ```
 
-### 8.2 解析规则
-
-```
-User-agent: *
-Disallow: /admin/
-Disallow: /private/
-Crawl-delay: 5
-
-User-agent: NewsHub-Bot
-Allow: /news/
-```
-
-### 8.3 实现示例
+### 4.4 Next.js (Server-Side)
 
 ```javascript
-const robotsParser = require('robots-parser');
+// app/api/hot-news/[platform]/route.js
+import { NextResponse } from 'next/server';
 
-const robots = robotsParser('https://example.com/robots.txt', robotsTxt);
+export async function GET(request, { params }) {
+  const { platform } = params;
+  const url = `https://orz.ai/api/v1/dailynews/?platform=${platform}`;
 
-if (robots.isAllowed('https://example.com/news/123', 'NewsHub-Bot')) {
-  // 可以抓取
-} else {
-  // 跳过
+  try {
+    const response = await fetch(url);
+    const result = await response.json();
+
+    // 缓存30分钟
+    NextResponse.json(result.data, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=1800, stale-while-revalidate=3600'
+      }
+    });
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch data' }, { status: 500 });
+  }
 }
 ```
 
-## 9. 监控与维护
+## 5. 错误处理和重试策略
 
-### 9.1 监控指标
+### 5.1 常见错误
 
-- 新闻源可用性
-- 抓取成功率
-- 数据质量（完整度、准确度）
-- 更新及时性
-- 错误日志
+| 错误类型 | 说明 | 处理方法 |
+|---------|------|---------|
+| 网络超时 | API 响应时间过长 | 设置超时时间，使用重试机制 |
+| API 不可用 | hot_news API 服务停止 | 使用缓存数据，展示友好提示 |
+| 数据格式变更 | API 响应格式变化 | 做好版本兼容，定期检查更新 |
+| 无效平台代码 | 请求了不存在的平台 | 验证平台代码，使用白名单 |
 
-### 9.2 维护任务
+### 5.2 重试机制
 
-- 每日检查抓取日志
-- 每周审查新闻源状态
-- 每月更新新闻源列表
-- 及时应对网站结构变化
+```javascript
+async function getHotNewsWithRetry(platform, maxRetries = 3) {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      const data = await getHotNews(platform);
+      return data;
+    } catch (error) {
+      console.error(`Attempt ${i + 1} failed:`, error);
 
-## 10. 扩展新闻源
+      if (i === maxRetries - 1) {
+        // 最后一次重试失败，返回空数组或缓存数据
+        return getCachedData(platform) || [];
+      }
 
-### 10.1 添加新新闻源步骤
+      // 等待一段时间后重试（指数退避）
+      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+    }
+  }
+}
+```
 
-1. 评估新闻源质量和可靠性
-2. 检查是否提供 RSS/API
-3. 阅读 robots.txt 和使用条款
-4. 测试数据获取
-5. 配置数据映射规则
-6. 添加到数据库
-7. 测试抓取流程
-8. 启用新闻源
+### 5.3 降级策略
 
-### 10.2 建议新增的新闻源
+当 API 不可用时，可以采取以下策略：
 
-- 观察者网
-- 环球网
-- 参考消息网
-- 钛媒体
-- 极客公园
-- 雷锋网
-- 虎嗅网
-- 品玩
+1. **展示缓存数据**：使用 Redis 或其他缓存中的历史数据
+2. **友好提示**：告知用户数据正在更新中
+3. **部分展示**：展示其他可用平台的数据
+
+```javascript
+async function getHotNewsWithFallback(platform) {
+  try {
+    // 尝试从 API 获取最新数据
+    const data = await getHotNews(platform);
+    await setCache(platform, data); // 更新缓存
+    return data;
+  } catch (error) {
+    console.error('API failed, using cache');
+
+    // API 失败，使用缓存数据
+    const cachedData = await getCachedData(platform);
+
+    if (cachedData) {
+      return {
+        data: cachedData,
+        cached: true,
+        message: '正在更新数据，显示的是缓存内容'
+      };
+    }
+
+    // 如果也没有缓存，返回空数组
+    return {
+      data: [],
+      error: true,
+      message: '暂时无法获取数据，请稍后再试'
+    };
+  }
+}
+```
+
+## 6. 数据缓存策略
+
+### 6.1 缓存方案
+
+#### Redis 缓存
+```javascript
+const Redis = require('redis');
+const redis = Redis.createClient();
+
+async function getCachedHotNews(platform) {
+  const key = `hot_news:${platform}`;
+  const cached = await redis.get(key);
+
+  if (cached) {
+    return JSON.parse(cached);
+  }
+
+  // 缓存未命中，从 API 获取
+  const data = await getHotNews(platform);
+
+  // 存入缓存，30分钟过期
+  await redis.setex(key, 1800, JSON.stringify(data));
+
+  return data;
+}
+```
+
+#### Vercel KV 缓存（适合 Serverless）
+```javascript
+import { kv } from '@vercel/kv';
+
+export async function getCachedHotNews(platform) {
+  const key = `hot_news:${platform}`;
+
+  // 尝试从缓存获取
+  const cached = await kv.get(key);
+  if (cached) {
+    return cached;
+  }
+
+  // 从 API 获取
+  const data = await getHotNews(platform);
+
+  // 存入缓存，30分钟过期
+  await kv.set(key, data, { ex: 1800 });
+
+  return data;
+}
+```
+
+### 6.2 缓存时长建议
+
+| 数据类型 | 缓存时长 | 说明 |
+|---------|---------|------|
+| 热点新闻数据 | 30分钟 | API 约每30分钟刷新一次 |
+| 平台列表 | 1小时 | 平台信息很少变化 |
+| 搜索结果 | 3分钟 | 搜索结果缓存时间较短 |
+| 聚合数据 | 15分钟 | 跨平台聚合数据 |
+
+## 7. 定时任务
+
+### 7.1 使用 node-cron
+
+```javascript
+const cron = require('node-cron');
+const platforms = ['baidu', 'weibo', 'zhihu', 'tskr'];
+
+// 每30分钟执行一次
+cron.schedule('*/30 * * * *', async () => {
+  console.log('Updating hot news cache...');
+
+  for (const platform of platforms) {
+    try {
+      const data = await getHotNews(platform);
+      await setCache(platform, data);
+      console.log(`${platform} updated successfully`);
+    } catch (error) {
+      console.error(`${platform} update failed:`, error);
+    }
+  }
+
+  console.log('Hot news cache update completed');
+});
+```
+
+### 7.2 使用 Vercel Cron Jobs
+
+```javascript
+// app/api/cron/hot-news/route.ts
+import { NextResponse } from 'next/server';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+export async function GET(request) {
+  // 验证 Cron Secret
+  const authHeader = request.headers.get('authorization');
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // 更新所有平台的数据
+  const platforms = ['baidu', 'weibo', 'zhihu', 'tskr'];
+  const results = {};
+
+  for (const platform of platforms) {
+    try {
+      const data = await getHotNews(platform);
+      await setCache(platform, data);
+      results[platform] = 'success';
+    } catch (error) {
+      results[platform] = 'failed';
+    }
+  }
+
+  return NextResponse.json({ success: true, results });
+}
+```
+
+`vercel.json` 配置：
+```json
+{
+  "crons": [
+    {
+      "path": "/api/cron/hot-news",
+      "schedule": "*/30 * * * *"
+    }
+  ]
+}
+```
+
+## 8. 监控和告警
+
+### 8.1 API 健康检查
+
+```javascript
+async function checkApiHealth() {
+  const platforms = ['baidu', 'weibo'];
+  const results = {};
+
+  for (const platform of platforms) {
+    try {
+      const start = Date.now();
+      await getHotNews(platform);
+      const duration = Date.now() - start;
+
+      results[platform] = {
+        status: 'ok',
+        duration: `${duration}ms`
+      };
+    } catch (error) {
+      results[platform] = {
+        status: 'error',
+        error: error.message
+      };
+    }
+  }
+
+  return results;
+}
+```
+
+### 8.2 告警设置
+
+- 使用 Uptime Robot 或类似服务监控 API 可用性
+- API 连续失败 3 次时发送告警
+- 响应时间超过 5 秒时发送告警
+- 数据更新异常时发送告警
+
+## 9. 最佳实践
+
+### 9.1 性能优化
+
+1. **批量获取**：一次性请求多个平台，避免逐个请求
+2. **并发控制**：限制并发请求数量，避免过载
+3. **结果缓存**：充分利用缓存减少 API 调用
+4. **数据预处理**：提前计算和排序，减少实时计算
+
+### 9.2 可靠性保障
+
+1. **重试机制**：失败时自动重试，但要设置最大重试次数
+2. **超时控制**：设置合理的超时时间，避免长时间等待
+3. **降级策略**：API 不可用时使用缓存数据
+4. **日志记录**：记录所有 API 调用，便于问题排查
+
+### 9.3 用户体验
+
+1. **加载状态**：显示加载动画或骨架屏
+2. **错误提示**：友好的错误提示信息
+3. **数据时效**：显示数据更新时间
+4. **快速响应**：使用缓存优先策略
+
+## 10. 注意事项
+
+### 10.1 使用限制
+
+- 此 API 仅供合法使用，任何非法使用均不受支持
+- 本 API 提供的数据仅供参考，不应作为新闻的主要来源
+- 建议在页面注明数据来源：数据来源于 hot_news API
+
+### 10.2 风险提示
+
+- API 可能因维护、更新或停止服务导致数据获取失败
+- API 响应格式可能发生变化，需要做好兼容处理
+- 过度频繁的请求可能导致限流或封禁
+
+### 10.3 合规建议
+
+- 遵守相关法律法规
+- 注明数据来源和原平台链接
+- 用户点击后跳转至原平台查看完整内容
+- 不将数据用于商业用途（需查看 API 使用条款）
+
+## 11. 相关资源
+
+- **GitHub 仓库**: https://github.com/orz-ai/hot_news
+- **在线示例**: https://orz.ai
+- **项目文档**: https://github.com/orz-ai/hot_news#readme
 
 ---
 
-**文档版本：** v1.0
+**文档版本：** v2.0
 **最后更新：** 2025-12-28
 **维护者：** NewsHub Team
-
-**注意**: 在使用爬虫抓取数据时，请务必遵守相关法律法规和网站的使用条款，尊重 robots.txt 规则。
+**变更说明：** 完全重写为 hot_news API 集成文档

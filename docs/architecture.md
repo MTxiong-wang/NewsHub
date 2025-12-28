@@ -4,7 +4,7 @@
 
 ### 1.1 整体架构
 
-NewsHub 采用典型的三层架构设计：
+NewsHub 采用典型的三层架构设计，使用 hot_news API 作为数据源：
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -17,35 +17,37 @@ NewsHub 采用典型的三层架构设计：
 ┌─────────────────────────────────────────────────────────────┐
 │                         应用层 (Application)                 │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │   API 服务    │  │  搜索服务     │  │  推荐服务     │      │
+│  │   API 服务    │  │  搜索服务     │  │  定时任务     │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
 └─────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
 │                         数据层 (Data)                        │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │   数据库      │  │   缓存        │  │   搜索引擎    │      │
+│  │   缓存        │  │   (可选)      │  │   搜索引擎    │      │
+│  │   Redis      │  │   数据库      │  │ (可选)        │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
 └─────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────┐
-│                         采集层 (Collection)                  │
+│                     数据采集层 (Collection)                  │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │  爬虫调度器   │  │  数据处理器   │  │  热度计算器   │      │
+│  │ API 调用器    │  │  数据处理器   │  │  错误处理器   │      │
+│  │ hot_news API │  │  清洗/去重    │  │  重试/降级    │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ### 1.2 核心模块
 
-1. **新闻采集模块** - 负责从各新闻源抓取数据
-2. **数据处理模块** - 清洗、去重、分类
-3. **热度计算模块** - 计算新闻热度值
-4. **API 服务模块** - 提供 RESTful API
-5. **搜索服务模块** - 提供全文搜索功能
+1. **API 调用模块** - 调用 hot_news API 获取22个平台的热点数据
+2. **数据处理模块** - 清洗、去重、格式化
+3. **热度计算模块** - 基于 API score 计算热度值
+4. **API 服务模块** - 提供 RESTful API（可选）
+5. **搜索服务模块** - 提供全文搜索功能（可选）
 6. **推荐服务模块** - 个性化推荐（可选）
 7. **前端展示模块** - 用户界面
-8. **管理后台模块** - 系统管理
+8. **管理后台模块** - 系统管理（可选）
 
 ## 2. 技术选型建议
 
@@ -80,312 +82,205 @@ NewsHub 采用典型的三层架构设计：
 - 渐进式框架，灵活性高
 - 中文文档丰富
 
-### 2.2 后端技术栈
+### 2.2 后端技术栈（可选）
 
-#### 方案 A：Node.js 方案（推荐）
+#### 方案 A：Node.js 方案
 - **运行时**：Node.js 20+
 - **框架**：NestJS / Express / Fastify
-- **ORM**：Prisma / TypeORM
 - **语言**：TypeScript
+- **HTTP 客户端**：axios / node-fetch
+- **定时任务**：node-cron / Bull / Agenda
 
 **优势**：
 - 前后端统一语言
 - 异步 I/O，高并发性能好
 - npm 生态丰富
+- 适合调用 RESTful API
 
-#### 方案 B：Python 方案
-- **框架**：FastAPI / Django
-- **异步库**：asyncio, aiohttp
-- **爬虫框架**：Scrapy
-
-**优势**：
-- 爬虫生态成熟（Scrapy）
-- 数据处理库丰富（Pandas, NumPy）
-- AI/ML 集成方便
-
-#### 方案 C：Go 方案
-- **框架**：Gin / Echo
-- **并发模型**：Goroutines
+#### 方案 B：纯前端方案（最简单，推荐）
+- **框架**：Next.js / Nuxt 3
+- **数据获取**：直接在服务器端调用 API
+- **缓存**：Redis 或 Vercel KV
+- **定时任务**：Vercel Cron Jobs / GitHub Actions
 
 **优势**：
-- 性能优秀，并发能力强
-- 部署简单，单文件执行
-- 适合高并发场景
+- 无需自建后端服务
+- 部署简单（Vercel/Netlify）
+- 开发成本低
+- 适合中小规模应用
 
-### 2.3 数据库选型
+### 2.3 数据存储方案（可选）
 
-#### 主数据库
-**PostgreSQL**（推荐）
-- 支持全文搜索
-- JSON 数据类型支持
-- 优秀的性能和可靠性
-- 开源免费
+由于 hot_news API 已经提供数据，可以考虑以下几种方案：
 
-**MySQL / MariaDB**
-- 广泛使用，文档丰富
-- 成熟稳定
+#### 方案 A：纯缓存方案（推荐，最简单）
+- **Redis** - 作为主要数据存储
+- **存储时长**：30分钟 - 24小时
+- **优势**：
+  - 无需数据库维护
+  - 部署简单
+  - 成本低
+- **适用场景**：中小规模，数据不需要长期保存
 
-**MongoDB**
-- 灵活的文档结构
-- 适合非结构化数据
-- 横向扩展能力强
+#### 方案 B：轻量数据库
+- **SQLite** - 嵌入式数据库
+- **优势**：
+  - 无需数据库服务器
+  - 文件存储，备份方便
+  - 适合单机部署
+- **适用场景**：需要历史数据和趋势分析
 
-#### 缓存层
-**Redis**（推荐）
-- 内存缓存，高性能
-- 支持多种数据结构
-- 可用于消息队列
+#### 方案 C：云数据库
+- **Vercel Postgres / Neon** - Serverless PostgreSQL
+- **PlanetScale / Supabase** - MySQL 云服务
+- **优势**：
+  - 按需付费
+  - 自动扩展
+  - 无需运维
+- **适用场景**：生产环境，需要可靠性保障
 
-**Memcached**
-- 简单高效的 KV 缓存
+#### 方案 D：不存储，实时调用（最简单）
+- **直接调用 API**：每次用户请求时调用 hot_news API
+- **优势**：
+  - 无需存储和缓存
+  - 数据始终最新
+  - 零维护成本
+- **劣势**：
+  - 依赖第三方 API 可用性
+  - 响应速度较慢
+- **适用场景**：原型开发、个人项目
 
-#### 搜索引擎
-**Elasticsearch**（推荐）
-- 强大的全文搜索能力
-- 支持分布式部署
-- 丰富的查询语法
-
-**Meilisearch**
-- 轻量级，易用
-- 快速的搜索响应
-- 适合中小规模
-
-### 2.4 消息队列（可选）
-- **RabbitMQ** - 功能完善，可靠性高
-- **Redis** - 轻量级，使用简单
-- **Kafka** - 高吞吐量，适合大数据
-
-### 2.5 部署方案
-
-#### 容器化
-- **Docker** - 容器化部署
-- **Docker Compose** - 本地开发环境
-
-#### 编排工具
-- **Kubernetes** - 大规模生产环境
-- **Docker Swarm** - 简单的集群管理
+### 2.4 部署方案
 
 #### 云平台
+- **Vercel** / **Netlify** - 前端托管（推荐，免费额度）
+- **Railway** / **Render** - 后端服务托管
 - **阿里云** / **腾讯云** - 国内访问快
-- **AWS** / **Google Cloud** - 国际化
-- **Vercel** / **Netlify** - 前端托管（推荐）
 
-### 2.6 监控与日志
-- **日志**：Winston / Pino
-- **监控**：Prometheus + Grafana
-- **APM**：Sentry / DataDog
-- **日志聚合**：ELK Stack
+### 2.5 监控与日志
+- **日志**：Winston / Pino / console
+- **监控**：Uptime Robot / Pingdom（监控 API 可用性）
+- **错误追踪**：Sentry（可选）
 
-## 3. 数据模型设计
+## 3. 数据模型设计（可选）
 
-### 3.1 核心数据表
+**注意**：如果选择纯前端方案或纯缓存方案，可以跳过此节。
 
-#### 新闻表 (news)
+### 3.1 核心数据表（如果使用数据库存储）
+
+#### 平台表 (platforms)
 ```sql
-CREATE TABLE news (
+CREATE TABLE platforms (
     id SERIAL PRIMARY KEY,
-    title VARCHAR(500) NOT NULL,
-    summary TEXT,
-    content TEXT,
-    author VARCHAR(200),
-    source_id INTEGER REFERENCES news_sources(id),
-    original_url VARCHAR(1000) UNIQUE,
-    category_id INTEGER REFERENCES categories(id),
-    cover_image VARCHAR(1000),
-    published_at TIMESTAMP,
-    crawled_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    hot_score DECIMAL(10,2) DEFAULT 0,
-    view_count INTEGER DEFAULT 0,
-    status VARCHAR(50) DEFAULT 'active', -- active, hidden, deleted
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX idx_news_hot_score ON news(hot_score DESC);
-CREATE INDEX idx_news_published_at ON news(published_at DESC);
-CREATE INDEX idx_news_category ON news(category_id);
-CREATE INDEX idx_news_source ON news(source_id);
-```
-
-#### 新闻源表 (news_sources)
-```sql
-CREATE TABLE news_sources (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(200) NOT NULL,
-    url VARCHAR(1000) NOT NULL,
-    type VARCHAR(50), -- rss, api, crawler
-    config JSONB, -- 存储配置信息
-    priority INTEGER DEFAULT 0,
+    code VARCHAR(50) UNIQUE NOT NULL,      -- baidu, weibo, zhihu
+    name VARCHAR(100) NOT NULL,            -- 百度热搜, 微博热搜
+    name_en VARCHAR(100),                  -- Baidu Hot, Weibo Hot
+    category VARCHAR(50),                  -- social, tech, finance
+    icon_url VARCHAR(500),
+    website_url VARCHAR(500),
     is_active BOOLEAN DEFAULT TRUE,
-    last_crawl_at TIMESTAMP,
-    crawl_frequency INTEGER DEFAULT 30, -- 分钟
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-#### 分类表 (categories)
-```sql
-CREATE TABLE categories (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    slug VARCHAR(100) NOT NULL UNIQUE,
-    parent_id INTEGER REFERENCES categories(id),
-    description TEXT,
-    sort_order INTEGER DEFAULT 0,
-    is_active BOOLEAN DEFAULT TRUE
-);
-```
-
-#### 标签表 (tags)
-```sql
-CREATE TABLE tags (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(100) NOT NULL UNIQUE,
-    slug VARCHAR(100) NOT NULL UNIQUE,
-    usage_count INTEGER DEFAULT 0,
+    priority INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
-CREATE TABLE news_tags (
-    news_id INTEGER REFERENCES news(id) ON DELETE CASCADE,
-    tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE,
-    PRIMARY KEY (news_id, tag_id)
-);
 ```
 
-#### 用户表（可选）
+#### 热点新闻表 (hot_news)
 ```sql
-CREATE TABLE users (
+CREATE TABLE hot_news (
     id SERIAL PRIMARY KEY,
-    username VARCHAR(100) UNIQUE NOT NULL,
-    email VARCHAR(255) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    avatar VARCHAR(1000),
-    preferences JSONB,
+    platform_id INTEGER REFERENCES platforms(id),
+    title VARCHAR(500) NOT NULL,
+    url VARCHAR(1000),
+    description TEXT,
+    score INTEGER DEFAULT 0,               -- API返回的热度值
+    trend_rank INTEGER,                    -- 当日排名
+    snapshot_date DATE,                    -- 快照日期
+    snapshot_time TIMESTAMP,               -- 快照时间戳
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+    UNIQUE(platform_id, url, snapshot_date)
 );
+
+CREATE INDEX idx_hot_news_score ON hot_news(score DESC);
+CREATE INDEX idx_hot_news_date ON hot_news(snapshot_date DESC);
+CREATE INDEX idx_hot_news_platform ON hot_news(platform_id);
 ```
 
-### 3.2 ER 图
+### 3.2 数据结构示例（Redis/JSON 格式）
 
-```
-┌─────────────┐         ┌─────────────┐
-│   news      │────────>│news_sources │
-├─────────────┤         ├─────────────┤
-│ id          │         │ id          │
-│ title       │         │ name        │
-│ summary     │         │ url         │
-│ content     │         │ type        │
-│ source_id   │         │ config      │
-│ category_id │         └─────────────┘
-│ ...         │                ↑
-└─────────────┘                │
-       │                       │
-       │                ┌─────────────┐
-       ↓                │  crawler    │
-┌─────────────┐         └─────────────┘
-│ categories  │
-├─────────────┤
-│ id          │
-│ name        │
-└─────────────┘
+如果使用 Redis 存储，可以采用以下结构：
 
-┌─────────────┐         ┌─────────────┐
-│   news      │<────────│    tags     │
-└─────────────┘         └─────────────┘
+```json
+// Key: hot_news:{platform}:{date}
+{
+  "platform": "baidu",
+  "date": "2025-12-28",
+  "updated_at": "2025-12-28T10:30:00Z",
+  "data": [
+    {
+      "title": "新闻标题",
+      "url": "https://...",
+      "score": 4955232,
+      "desc": "描述文字",
+      "rank": 1
+    }
+  ]
+}
 ```
 
 ## 4. 核心流程设计
 
-### 4.1 新闻采集流程
+### 4.1 数据获取流程
 
 ```
-┌─────────────┐
-│ 定时调度器   │ (每 5-30 分钟)
-└──────┬──────┘
-       ↓
-┌─────────────┐
-│ 新闻源列表   │
-└──────┬──────┘
-       ↓
-┌─────────────────────────────────────────┐
-│          数据抓取模块                     │
-│  ┌─────────┐  ┌─────────┐  ┌─────────┐ │
-│  │   RSS   │  │   API   │  │ 爬虫    │ │
-│  └─────────┘  └─────────┘  └─────────┘ │
-└──────────────┬──────────────────────────┘
-               ↓
-       ┌───────────────┐
-       │  原始数据队列  │
-       └───────┬───────┘
-               ↓
-       ┌───────────────┐
-       │  数据清洗模块  │
-       │  - 去重        │
-       │  - 格式化      │
-       │  - 过滤        │
-       └───────┬───────┘
-               ↓
-       ┌───────────────┐
-       │   存储数据库   │
-       └───────┬───────┘
-               ↓
-       ┌───────────────┐
-       │  热度计算模块  │
-       └───────┬───────┘
-               ↓
-       ┌───────────────┐
-       │  更新缓存索引  │
-       └───────────────┘
+定时任务触发（每30分钟）
+    ↓
+遍历22个平台
+    ↓
+调用 hot_news API
+    ↓
+接收 JSON 数据
+    ↓
+数据清洗和去重
+    ↓
+存储到缓存/数据库（可选）
+    ↓
+更新前端缓存
 ```
 
 ### 4.2 用户访问流程
 
 ```
 用户请求
-   ↓
-┌──────────┐
-│ CDN 缓存  │ → 命中 → 返回
-└─────┬────┘
-      ↓ 未命中
-┌──────────┐
-│ Redis    │ → 命中 → 返回
-└─────┬────┘
-      ↓ 未命中
-┌──────────┐
-│ 数据库   │ → 查询 → 返回
-└─────┬────┘
-      ↓
-┌──────────┐
-│ 写缓存   │
-└──────────┘
+    ↓
+前端缓存检查（浏览器缓存）
+    ↓
+服务端缓存检查（Redis/Vercel KV）
+    ↓
+调用 hot_news API（缓存未命中）
+    ↓
+数据处理和排序
+    ↓
+返回展示
 ```
 
 ### 4.3 搜索流程
 
 ```
 用户搜索
-   ↓
-┌──────────────┐
-│ 搜索关键词    │
-└──────┬───────┘
-       ↓
-┌──────────────┐
-│ Elasticsearch│ → 查询
-└──────┬───────┘
-       ↓
-┌──────────────┐
-│ 结果排序      │
-└──────┬───────┘
-       ↓
-┌──────────────┐
-│ 返回结果      │
-└──────────────┘
+    ↓
+搜索关键词
+    ↓
+前端过滤或后端搜索
+    ↓
+结果排序
+    ↓
+返回结果
 ```
 
-## 5. API 设计
+## 5. API 设计（可选）
+
+如果需要提供后端 API 服务：
 
 ### 5.1 RESTful API 规范
 
@@ -404,110 +299,49 @@ https://api.newshub.com/v1
 }
 ```
 
-#### 错误响应
-```json
-{
-  "success": false,
-  "error": {
-    "code": "ERROR_CODE",
-    "message": "Error message"
-  },
-  "timestamp": "2025-12-28T00:00:00Z"
-}
-```
-
 ### 5.2 核心 API 端点
 
-#### 新闻相关
+#### 热点新闻相关
 ```
-GET    /news                 # 获取新闻列表
-GET    /news/:id             # 获取新闻详情
-GET    /news/hot             # 获取热点新闻
-GET    /news/latest          # 获取最新新闻
-GET    /news/category/:id    # 按分类获取
+GET    /hot-news              # 获取所有平台热点
+GET    /hot-news/:platform    # 获取特定平台热点
+GET    /hot-news/hot          # 获取跨平台热门
+GET    /platforms             # 获取所有平台列表
 ```
 
 #### 搜索相关
 ```
-GET    /search               # 搜索新闻
-GET    /search/suggest       # 搜索建议
-```
-
-#### 分类相关
-```
-GET    /categories           # 获取所有分类
-GET    /categories/:id       # 获取分类详情
-```
-
-#### 标签相关
-```
-GET    /tags                 # 获取所有标签
-GET    /tags/hot             # 获取热门标签
-GET    /tags/:id/news        # 获取标签下的新闻
-```
-
-#### 管理后台 API
-```
-GET    /admin/news           # 管理新闻列表
-POST   /admin/news           # 添加新闻
-PUT    /admin/news/:id       # 更新新闻
-DELETE /admin/news/:id       # 删除新闻
-
-GET    /admin/sources        # 管理新闻源
-POST   /admin/sources        # 添加新闻源
-PUT    /admin/sources/:id    # 更新新闻源
-DELETE /admin/sources/:id    # 删除新闻源
-
-GET    /admin/stats          # 统计数据
-```
-
-### 5.3 API 认证
-
-使用 JWT（JSON Web Token）进行认证：
-
-```
-Authorization: Bearer <token>
+GET    /search                # 搜索热点
 ```
 
 ## 6. 缓存策略
 
 ### 6.1 缓存层级
 
-1. **CDN 缓存**（静态资源）
-   - CSS, JS, 图片
-   - 缓存时间：1 天 - 1 年
+1. **浏览器缓存**（前端）
+   - 静态资源：1 天 - 1 年
+   - API 响应：5 分钟
 
-2. **Redis 缓存**（热点数据）
-   - 热门新闻列表：5 分钟
-   - 新闻详情：10 分钟
-   - 分类列表：1 小时
+2. **服务端缓存**（Redis/Vercel KV）
+   - 热点数据：30 分钟
+   - 平台列表：1 小时
    - 搜索结果：3 分钟
-
-3. **应用缓存**（内存）
-   - 配置信息
-   - 新闻源配置
 
 ### 6.2 缓存更新策略
 
-- **主动更新**：数据变更时立即更新缓存
+- **主动更新**：定时任务每30分钟更新缓存
 - **被动过期**：设置 TTL 自动过期
-- **定时预热**：定时任务预加载热点数据
+- **客户端缓存**：利用浏览器缓存减少请求
 
 ## 7. 性能优化
 
-### 7.1 数据库优化
-- 合理使用索引
-- 分页查询（避免深分页）
-- 读写分离
-- 数据库连接池
+### 7.1 应用优化
+- API 调用批量化（一次请求获取多个平台）
+- 并发控制（限制同时 API 调用数量）
+- 结果缓存（减少重复调用）
+- 懒加载（按需加载数据）
 
-### 7.2 应用优化
-- 异步处理（非阻塞 I/O）
-- 并发控制
-- 资源池化
-- 懒加载
-
-### 7.3 前端优化
+### 7.2 前端优化
 - 代码分割（Code Splitting）
 - 图片懒加载
 - 服务端渲染（SSR）
@@ -515,75 +349,84 @@ Authorization: Bearer <token>
 
 ## 8. 安全设计
 
-### 8.1 认证与授权
-- JWT Token 认证
-- RBAC 权限控制
-- API 访问频率限制
+### 8.1 认证与授权（可选）
+- 如果有用户系统，使用 JWT Token 认证
+- API 访问频率限制（可选）
 
 ### 8.2 数据安全
-- 密码哈希存储（bcrypt）
 - HTTPS 加密传输
-- SQL 参数化查询
 - XSS 防护
+- CSRF 防护（可选）
 
-### 8.3 爬虫安全
-- 遵守 robots.txt
-- 设置请求间隔
-- User Agent 识别
-- 代理 IP 池（可选）
+### 8.3 API 调用安全
+- 设置合理的超时时间
+- 实现重试机制（避免无限重试）
+- 监控 API 可用性
+- 降级策略（API 不可用时使用缓存）
 
 ## 9. 监控与运维
 
 ### 9.1 监控指标
-- 系统资源：CPU, 内存, 磁盘
-- 应用性能：响应时间, QPS
-- 业务指标：新闻数量, 用户访问
+- API 可用性
+- API 响应时间
+- 缓存命中率
+- 错误日志
 
 ### 9.2 日志管理
-- 应用日志
-- 访问日志
+- API 调用日志
 - 错误日志
-- 爬虫日志
+- 性能日志
 
 ### 9.3 告警机制
-- 服务异常告警
-- 性能阈值告警
-- 爬虫失败告警
+- API 不可用告警
+- 性能异常告警
 
 ## 10. 部署架构
 
 ### 10.1 开发环境
 ```
-本地开发 → Docker Compose
+本地开发 → 无需容器化
 ```
 
-### 10.2 生产环境
+### 10.2 生产环境（推荐）
+
+#### 方案 A：纯前端部署
 ```
-负载均衡 (Nginx)
+用户
+    ↓
+CDN (Vercel/Netlify)
+    ↓
+Serverless Functions (调用 API)
+    ↓
+hot_news API
+```
+
+#### 方案 B：前后端分离
+```
+负载均衡 (Nginx/可选)
     ↓
 前端服务器 (Vercel/Netlify)
     ↓
-API 服务器 (多实例)
+API 服务器 (Railway/Render)
     ↓
-数据库集群 (主从)
-    ↓
-缓存集群 (Redis)
+缓存 (Redis/可选)
 ```
 
 ## 11. 扩展性设计
 
 ### 11.1 水平扩展
 - 无状态应用层
-- 数据库分库分表
-- 缓存集群
+- CDN 加速
+- 缓存集群（可选）
 
 ### 11.2 功能扩展
-- 插件化架构
-- 微服务化（可选）
+- 插件化架构（可选）
 - API 版本控制
+- 支持多个数据源（不依赖单一 API）
 
 ---
 
-**文档版本：** v1.0
+**文档版本：** v2.0
 **最后更新：** 2025-12-28
 **维护者：** NewsHub Team
+**变更说明：** 将数据获取方式从自建爬虫改为使用 hot_news API，简化架构设计
